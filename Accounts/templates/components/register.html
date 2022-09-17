@@ -1,0 +1,28 @@
+{% load static %}
+
+<div class="auth-container login-body " id="auth_container_id">
+        <div class="form-container sign-up-container">
+            <form method="post" class="auth-form">
+                <h1>Create Account</h1>
+                {% csrf_token %}
+                {{ registration_form }}
+                <br>
+                <button>Sign Up</button>
+            </form>
+        </div>
+        <div class="overlay-container">
+            <div class="auth-overlay">
+                <div class="overlay-panel overlay-left">
+                    <h1>Welcome!</h1>
+                    <p>Login Here</p>
+                    <a class="ghost a-btn" id="signIn">Sign In</a>
+                </div>
+                <div class="overlay-panel overlay-right">
+                    <h1>Hello!</h1>
+                    <p>Create Account</p>
+                    <a class="ghost a-btn" id="signUp">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/auth.js' %}"></script>

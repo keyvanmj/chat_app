@@ -1,0 +1,63 @@
+{% extends 'shared/base.html' %}
+{% load custom_filters %}
+{% load custom_tags %}
+{% load static %}
+{% block title %}
+    Public Room List
+{% endblock %}
+{% block content %}
+    <div id="frame">
+
+        {% side_bar request=request %}
+
+        <div class="content">
+            <div class="content-profile">
+                <div class="container">
+                    <div class="p-2">
+                        {% if public_rooms %}
+                            <div class="d-flex flex-row flex-wrap">
+                                <div class="row row-cols-1 row-cols-md-3 g-4">
+                                    {% for room in public_rooms %}
+                                        <div class="col w-75">
+
+                                            <div class="card border-success mb-3 bg-dark text-light">
+                                                <div class="card-header bg-transparent border-success"><span class="badge bg-primary">Public Room </span> : <span
+                                                        class="badge bg-secondary">{{ room.title }}</span></div>
+                                                <div class="card-body">
+                                                    <button type="button" class="btn btn-dark pe-none mb-2 position-relative">
+                                                      Members
+                                                      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                                        {{ room.users.all|length }}
+                                                        <span class="visually-hidden">members</span>
+                                                      </span>
+                                                    </button>
+                                                    <p class="card-text">Created at : <span
+                                                            class="fw-bold">{{ room.created_at }}</span></p>
+                                                </div>
+                                                <div class="card-footer bg-transparent border-success">
+                                                    {% if request.user not in room.users.all %}
+                                                        <a href="#"
+                                                           onclick="joinPublicChatRoom('{{ request.user.pk }}','{{ room.id }}')"
+                                                           class="btn btn-success w-100 pull-left">join</a>
+                                                    {% else %}
+                                                        <a href="{% url 'public_chat' uid=room.uid %}"
+                                                           class="btn btn-info w-100 pull-left">enter</a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center pt-5">
+                                <p>No rooms available</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include 'public/snippets/join_public_room.html' %}
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'shared/base.html' %}
+{% block content %}
+<div class="container">
+
+	<!-- MEDIUM+ SCREENS -->
+	<div class="main d-none mx-auto d-md-flex flex-column" style="background-image: url('https://icon-library.com/images/icon-for-chat/icon-for-chat-21.jpg');width: 512px;height: 512px">
+		<div class="ms-2">
+        {% if request.user.is_authenticated  %}
+			<h3 class="pb-4 text-center h4 text-white position-absolute top-0 pt-4 start-50 translate-middle-x">Welcome to Chat App {{ request.user.full_name }}!</h3>
+			<a class="btn btn-success w-50 mt-5 d-flex flex-row mx-auto" href="{% url 'account_view' pk=request.user.pk %}">
+				<span class="d-flex material-icons pr-2">build</span>
+				<span class="d-flex">Profile</span>
+			</a>
+		</div>
+            {% else %}
+            <h3 class="pb-4 text-center h4 text-white position-absolute top-0 pt-4 start-50 translate-middle-x">before start chat please
+                <a href="{% url 'login_view' %}">Login</a>
+                or
+                <a href="{% url 'register_view' %}">Register</a> .</h3>
+        {% endif %}
+
+
+	</div>
+	<!-- END MEDIUM+ SCREENS -->
+
+	<!-- SMALL SCREENS -->
+	<div class="d-flex d-md-none p-2">
+		<p>This site is not meant to be viewed on a mobile device. Please download the <a href="#">app</a>.</p>
+	</div>
+	<!-- END SMALL SCREENS -->
+</div>
+
+
+{% endblock content %}

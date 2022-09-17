@@ -1,0 +1,440 @@
+{% extends 'shared/base.html' %}
+{% block title %}
+    Public Chat
+{% endblock %}
+{% load static %}
+{% load custom_tags %}
+{% load custom_filters %}
+{% load rest_framework %}
+{% block content %}
+    <div id="frame">
+{% side_bar request=request msg_and_friend=msg_and_friend %}
+    <div class="content">
+
+    <div class="contact-profile">
+            <a class="navbar-brand m-3" id="id_room_title" {% if request.user == room_owner %}onclick="publicUpdateModal(){% endif %}"></a>
+        <!-- Button trigger modal -->
+        <div class="social-media">
+        <button type="button" class="btn btn-transition position-relative me-4" data-bs-toggle="tooltip" data-bs-placement="left" title="connected users">
+                <span class="material-icons connected-users-icon">person</span>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  <span class="m-auto connected-users" id="id_connected_users"></span>
+                <span class="visually-hidden">connected users</span>
+              </span>
+            </button>
+
+        </div>
+        <!-- End Button trigger modal -->
+
+    </div>
+
+    <div class="messages" id="messages">
+        <ul id="content_messages">
+
+        </ul>
+        <a id="back-to-top" href="#" class="btn btn-light btn-lg back-to-top" role="button"><i class="fa fa-chevron-up"></i></a>
+
+    </div><span class="{% if not debug %}d-none{% endif %} page-number" id="id_page_number">1</span>
+    <div class="message-input" id="message-input">
+        <div class="wrap" id="end_line">
+            <input type="text" id="chat-message-input" placeholder="Write your message..."/>
+            <button class="submit" id="chat-message-submit">
+                <i class="fa fa-paper-plane" aria-hidden="true"></i>
+            </button>
+
+        </div>
+    </div>
+</div>
+
+</div>
+
+
+
+    <!-- Client Error MODAL -->
+<button type="button" id="id_trigger_client_error_modal" class="d-none btn btn-primary" data-toggle="modal" data-target="#id_client_error_modal">
+</button>
+<div class="modal fade" id="id_client_error_modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Socket Client Error</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="id_client_error_modal_body">Something went wrong.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" id="id_client_error_modal_close_btn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Client Error MODAL -->
+
+<script src="{% static 'js/back_to_top.js' %}"></script>
+<script type="text/javascript">
+
+	// Correctly decide between ws:// and wss://
+	let ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+    let ws_path = null
+    ws_path = ws_scheme + '://' + window.location.host + "/public_chat/{{room_id}}/"; // development
+	let public_chat_socket = new WebSocket(ws_path);
+
+	// Handle incoming messages
+	public_chat_socket.onmessage = function(message) {
+		let data  = JSON.parse(message.data);
+		// display the progress bar?
+		displayLoadingSpinner(data.display_progress_bar)
+
+		// Handle errors (ClientError)
+		if (data.error) {
+			console.error(data.error + ": " + data.message)
+			showClientErrorModal(data.message)
+			return;
+		}
+		// Handle joining (Client perspective)
+		if (data.join) {
+			getRoomChatMessages()
+		}
+        if (data.room_title){
+            setRoomTitle(data.room_title)
+        }
+
+		// Handle getting a message
+		if (data.msg_type == 0) {
+			appendChatMessage(data, true, true)
+		}
+		// Handle getting the connected_user count
+		if (data.msg_type == 1) {
+			setConnectedUsersCount(data['connected_user_count'])
+		}
+		// new payload of messages coming in from backend
+		if(data.messages_payload){
+			handleMessagesPayload(data.messages, data.new_page_number)
+		}
+	};
+
+	public_chat_socket.addEventListener("open", function(e){
+		// join chat room
+		if("{{request.user.is_authenticated}}"){
+			public_chat_socket.send(JSON.stringify({
+				"command": "join",
+				"room": "{{room_id}}"
+			}));
+		}
+	})
+
+	public_chat_socket.onclose = function(e) {
+		{#console.error('Public ChatSocket closed.');#}
+	};
+
+	public_chat_socket.onOpen = function(e){
+		{#console.log("Public ChatSocket onOpen", e)#}
+	}
+
+	public_chat_socket.onerror = function(e){
+        {#console.log('Public ChatSocket error', e)#}
+    }
+
+    if (public_chat_socket.readyState == WebSocket.OPEN) {
+    	{#console.log("Public ChatSocket OPEN")#}
+    } else if (public_chat_socket.readyState == WebSocket.CONNECTING){
+        {#console.log("Public ChatSocket connecting..")#}
+    }
+
+    let id_chat_message_input = document.getElementById('chat-message-input')
+    let id_chat_message_submit = document.getElementById('chat-message-submit')
+    id_chat_message_input.focus()
+	id_chat_message_input.onkeyup = function(e) {
+		if (e.keyCode === 13 && e.shiftKey) {  // enter + return
+			// Handled automatically by textarea
+		}
+		else if(e.keyCode === 13 && !e.shiftKey){ // enter + !return
+            id_chat_message_submit.click();
+		}
+	};
+
+    id_chat_message_submit.onclick = function(e) {
+        const message = id_chat_message_input.value;
+		public_chat_socket.send(JSON.stringify({
+			"command": "send",
+			"message": message,
+			"room_id": "{{room_id}}"
+		}));
+        id_chat_message_input.value = '';
+	};
+
+	function appendChatMessage(data, maintainPosition, isNewMessage){
+		message = data['message']
+		uName = data['username']
+        userId = data['user_id']
+		image = data['image']
+        timeStamp = data['natural_timestamp']
+        roomId = data['room_id']
+
+		let msg = message + '\n';
+		let username = uName
+		createChatMessageElement(msg, username, image, userId, timeStamp, maintainPosition, isNewMessage,roomId)
+	}
+
+	function handleMessagesPayload(messages, new_page_number){
+         if (messages == 0){
+            let div = document.createElement('div')
+            let p = document.createElement('p')
+            div.id = 'empty_msg'
+            div.classList.add('text-center','pt-5')
+            p.innerHTML = 'No messages here'
+            div.appendChild(p)
+            document.getElementById('content_messages').appendChild(div)
+        }
+		if(messages != null && messages != "undefined" && messages != "None"){
+			setPageNumber(new_page_number)
+			messages.forEach((message)=>{
+				appendChatMessage(message, true, false)
+			})
+		}
+		else{
+			setPaginationExhausted() // no more messages
+		}
+	}
+
+	function setPageNumber(pageNumber){
+		document.getElementById("id_page_number").innerHTML = pageNumber
+	}
+
+	function setPaginationExhausted(){
+		setPageNumber("-1")
+	}
+
+	/*
+		Retrieve the chat room messages given the page number.
+	*/
+	function getRoomChatMessages(){
+		let pageNumber = document.getElementById("id_page_number").innerHTML
+		if(pageNumber !== '-1'){
+			setPageNumber('-1') // Do not allow any other queries while one is in progress
+			public_chat_socket.send(JSON.stringify({
+				"command": "get_room_chat_messages",
+				"room_id": "{{room_id}}",
+				"page_number": pageNumber,
+			}));
+		}
+	}
+
+    let chatLog = document.getElementById('messages')
+		chatLog.addEventListener("scroll", function(e){
+			if ((Math.abs(chatLog.scrollTop) + 2) >= (chatLog.scrollHeight - chatLog.offsetHeight)) {
+				getRoomChatMessages()
+			}
+		});
+
+
+	function createChatMessageElement(msg,userName,image,userId,timeStamp,maintainPosition,isNewMessage,roomId){
+        let chatLog = document.getElementById('content_messages')
+        if (chatLog.querySelector('#empty_msg') != null){
+            chatLog.innerHTML = ''
+        }
+
+                let newMessageLi = document.createElement('li')
+                newMessageLi.classList.add('message-container')
+                newMessageLi.classList.add('pb-4')
+                if (userName == '{{ request.user.username }}'){
+                    newMessageLi.classList.add('sent')
+                }else{
+                    newMessageLi.classList.add('replies')
+                }
+
+                let profileImage = document.createElement('img')
+                profileImage.addEventListener('click',(e)=>{
+                    selectUser(userId)
+                })
+                profileImage.classList.add('profile-image-small')
+                profileImage.src = image
+                let profileImageId = 'id_image_'+userId
+                profileImage.id = profileImageId
+                profileImage.dataset.bsToggle = 'tooltip'
+                profileImage.dataset.bsPlacement = 'top'
+                profileImage.title = userName
+                newMessageLi.appendChild(profileImage)
+
+
+                let msgP = document.createElement('p')
+                msgP.innerHTML = validateText(msg)
+                msgP.classList.add('msg-p')
+
+                newMessageLi.appendChild(msgP)
+
+                let breakLine_br = document.createElement('br')
+                msgP.appendChild(breakLine_br)
+
+
+                let timeStampP = document.createElement('i')
+                timeStampP.innerHTML = timeStamp
+                timeStampP.classList.add('timestamp-p')
+                timeStampP.addEventListener('click',(e)=>{
+                    selectUser(userId)
+                })
+                msgP.appendChild(timeStampP)
+
+                if (isNewMessage){
+                    chatLog.insertBefore(newMessageLi,chatLog.firstChild)
+                    if (userName != '{{ request.user.username }}'){
+                        document.getElementById(`sidebar_msg_${roomId}`).innerHTML = validateText(msg)
+                    }
+                }else{
+                    chatLog.appendChild(newMessageLi)
+                }
+                if (!maintainPosition){
+                    chatLog.scrollTop = chatLog.scrollHeight
+                }
+                preloadImage(image,profileImageId)
+	}
+
+	function selectUser(user_id){
+		let url = "{% url 'account_view' pk=53252623623632623 %}".replace("53252623623632623", user_id)
+		let win = window.open(url, "_blank")
+		win.focus()
+	}
+
+	function showClientErrorModal(message){
+		swal({
+            title: 'Error',
+            text: message,
+            icon: "error",
+            dangerMode: true,
+        })
+            .then((willDelete) => {
+                if (willDelete) {
+                    {#window.location.replace('{% url "account_view" pk=request.user.pk %}');#}
+                }else {
+                    {#window.location.replace('{% url "account_view" pk=request.user.pk %}');#}
+                }
+            });
+	}
+
+
+	function setConnectedUsersCount(count){
+		element = document.getElementById("id_connected_users")
+		element.innerHTML = count
+	}
+
+    function setRoomTitle(title){
+        document.getElementById('id_room_title').textContent = title
+    }
+
+    function publicUpdateModal (){
+        let form = document.createElement('form')
+            let div1 = document.createElement('div')
+            let div2 = document.createElement('div')
+            div2.classList.add('col-md-12')
+            div2.id = 'inputs_section'
+            let submitButton = document.createElement('button')
+            submitButton.id = 'id_update_public_room_btn'
+            submitButton.type = 'submit'
+            submitButton.innerText = 'update'
+            submitButton.classList.add('pull-left','btn','btn-success','mt-4')
+            div2.classList.add('form-group')
+            div1.innerHTML = '{% csrf_token %}'
+            form.id = 'id_update_public_chat_room_form'
+            form.method = 'post'
+            form.appendChild(div1)
+            div2.innerHTML = `{% render_form public_serializer %}`
+            form.appendChild(div2)
+            form.appendChild(submitButton)
+
+            swal({
+            content:form,
+            title: `Update public room`,
+            button:'close',
+            dangerMode:true,
+            closeOnClickOutside: false,
+                closeOnEsc: false,
+            icon:'info'
+                })
+            .then(() => {
+            });
+            swal.getState(UpdatePublicChatRoom())
+
+    }
+
+
+    const UpdatePublicChatRoom = () => {
+        let selectId;
+        let span;
+        `{% for user in all_users %}
+        ${span = document.createElement('span')}
+
+        ${selectId = document.getElementById('id_{{ user.username }}')}
+        ${selectId.style.backgroundImage = 'url({{ user.get_profile_image }})'}
+        ${selectId.style.backgroundSize = '20%'}
+        ${selectId.style.backgroundRepeat = 'no-repeat'}
+        ${selectId.style.backgroundAttachment = 'fixed'}
+        ${selectId.style.backgroundPosition = 'top right'}
+        ${selectId.classList.add('img-fluid','p-4')}
+
+        {% if user in members %}
+            ${span.innerHTML = `&#9989;`}
+            ${selectId.appendChild(span)}
+        {% else %}
+            ${span.innerHTML = `&#10060;`}
+            ${selectId.appendChild(span)}
+
+        {% endif %}
+
+        {% endfor %}
+        `
+
+        let feedbackDiv = document.createElement('div')
+        let public_form_id = document.getElementById('id_update_public_chat_room_form')
+        let inputSection = document.getElementById('inputs_section')
+        public_form_id.addEventListener('submit', (e) => {
+                e.preventDefault()
+                $.ajax({
+                    method: 'POST',
+                    url: '{% url "public_chat" uid=room_uid %}',
+                    data: $(public_form_id).serialize(),
+                    success: function (data) {
+                        if (data['error']) {
+                            feedbackDiv.classList.add('invalid-feedback')
+                            feedbackDiv.id = 'validation_feedback'
+                            for (const [key, value] of Object.entries(data['error'])) {
+                                if (key ==='users'){
+                                feedbackDiv.textContent = value
+                                document.querySelector(`select[name=${key}]`).classList.add('is-invalid')
+                                document.querySelector(`select[name=${key}]`).after(feedbackDiv)
+                                document.querySelector(`select[name=${key}]`).ariaDescribedby = 'validation_feedback'
+                                }else{
+                                feedbackDiv.textContent = value
+                                document.querySelector(`input[name=${key}]`).classList.add('is-invalid')
+                                document.querySelector(`input[name=${key}]`).after(feedbackDiv)
+                                document.querySelector(`input[name=${key}]`).ariaDescribedby = 'validation_feedback'
+                                }
+                            }
+                        }
+                        else if (data['response'] === 'The room was successfully updated.') {
+                            feedbackDiv.className.replace('invalid-feedback', 'valid-feedback')
+                            feedbackDiv.id = 'validation_feedback'
+                            feedbackDiv.textContent = data['response']
+                            document.querySelector(`input[name='title']`).className.replace('is-invalid', 'is-valid')
+                            document.querySelector(`input[name='title']`).after(feedbackDiv)
+                            document.querySelector(`input[name='title']`).ariaDescribedby = 'validation_feedback'
+                            let redirectURL = data['redirect_url']
+                            OnGetOrCreateChatroomSuccess(redirectURL)
+                        }
+                    },
+                    error: function (data) {
+                        alert('Something went wrong.')
+                    }
+                })
+            }
+        )
+        let OnGetOrCreateChatroomSuccess = (redirectURL) => {
+            window.location.replace(redirectURL)
+        }
+    }
+
+</script>
+
+{% endblock %}

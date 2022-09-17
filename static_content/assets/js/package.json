@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "cropperjs": "^1.5.12",
+    "sweetalert": "^2.1.2"
+  }
+}

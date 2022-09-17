@@ -1,0 +1,298 @@
+{% extends 'shared/base.html' %}
+{% load custom_tags %}
+{% block title %}
+    Account
+{% endblock %}
+{% load rest_framework %}
+{% block content %}
+
+
+    <div class="bg-light" id="frame">
+        {% side_bar request=request %}
+
+        <div class="content">
+            <div class="contact-profile container d-flex">
+                {% if is_friend %}
+
+                    <div class="social-media flex-row pe-2">
+                        <a class="text-decoration-none" href="#" onclick="removeFriend('{{ pk }}', onFriendRemoved)">
+                            <div class="d-flex flex-row align-items-center justify-content-center icon-container">
+                                <span class="material-icons mr-2">person_off</span>
+                                <span class="friend-text">Unfriend</span>
+                            </div>
+                        </a>
+                    </div>
+
+
+                    <div class="social-media flex-row mx-auto ">
+                        <a href="#" class="text-decoration-none" onclick="createOrReturnPrivateChat('{{ pk }}')">
+                            <div class="d-flex flex-row align-items-center justify-content-center icon-container">
+                                <span class="material-icons mr-2 friends-icon">send</span>
+
+                                <span class="friend-text">Message</span>
+                            </div>
+                        </a>
+                    </div>
+                {% endif %}
+
+                <!-- Friend list link -->
+                <div class="social-media ps-2">
+                    <a href="{% url 'friends_list' pk=pk %}" class="text-decoration-none">
+                        <div class="d-flex flex-row align-items-center justify-content-center icon-container">
+                            <span class="material-icons mr-2 friends-icon">contact_page</span>
+
+                            <span class="friend-text">Friends ({{ friends|length }})</span>
+                        </div>
+                    </a>
+                </div>
+                <!-- End Button trigger modal -->
+
+            </div>
+
+            <div class="">
+
+                <div class="card-body">
+                    <div class="d-flex flex-column justify-content-center p-3">
+                        <div class="image-container mx-auto">
+                            {% if is_friend %}
+                                <div class="dropdown pt-3 m-auto dropend">
+                                    <img class="d-block rounded-circle dropdown-toggle friends-btn cursor-pointer img-fluid mx-auto profile-image-medium"
+                                         alt="profile logo" id="id_profile_image" src="#" data-bs-toggle="dropdown"
+                                         aria-haspopup="true"
+                                         aria-expanded="false">
+
+                                    <div class="dropdown-menu" aria-labelledby="id_profile_image">
+                                        <a class="dropdown-item" href="#"
+                                           onclick="removeFriend('{{ pk }}', onFriendRemoved)">Unfriend</a>
+
+                                        <a href="#" class="dropdown-item"
+                                           onclick="createOrReturnPrivateChat('{{ pk }}')">
+                                            message
+                                        </a>
+
+                                    </div>
+                                </div>
+                            {% else %}
+                                <img class="d-block rounded-circle img-fluid mx-auto profile-image-medium"
+                                     alt="profile logo" id="id_profile_image" src="#">
+                            {% endif %}
+                        </div>
+                        <div class="d-flex flex-row justify-content-center p-4">
+                            <div class="p-4 pt-0">
+                                <h4 class="pb-2 fw-bold">Phone</h4>
+
+                                {% if is_self %}
+                                    <p class="hover-1">{{ phone }}</p>
+                                {% else %}
+
+                                    {% if hide_phone %}
+                                        <p class="hover-1">**********</p>
+                                    {% else %}
+                                        <p class="hover-1">{{ phone }}</p>
+                                    {% endif %}
+                                {% endif %}
+                                <hr>
+                                <h4 class="pb-2 fw-bold">Username</h4>
+                                <p class="hover-1">{{ username }}</p>
+
+                            </div>
+                            <div class="p-4 pt-0">
+                                <h4 class="pb-2 fw-bold">First Name</h4>
+                                <p class="hover-1">{{ first_name|default_if_none:'-' }}</p>
+                                <hr>
+
+                                <h4 class="pb-2 fw-bold">Last Name</h4>
+                                <p class="hover-1">{{ last_name|default_if_none:'-' }}</p>
+                            </div>
+                        </div>
+
+                        <!-- If Auth user is viewing their own profile -->
+                        {% if is_self %}
+                            <a class="btn btn-primary" href="{% url 'edit_account_view' pk=pk %}">Update</a>
+                            <div class="d-flex flex-column">
+                                {#					<a class="m-auto" href="{% url 'password_change' %}">Change password</a>#}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if request.user.is_authenticated %}
+                <div class="d-flex flex-column">
+
+                    <!-- THEM to YOU -->
+                    {% if request_sent == 0 %}
+                        <div class="">
+                            <span class="friend-text align-items-center">Accept Friend Request : </span>
+                                <span id="id_cancel_{{ id }}" class="decline-friend-request btn-link material-icons p-2"
+                                      onclick='triggerDeclineFriendRequest("{{ pending_friend_request_id }}")'>cancel</span>
+                                <span id="id_confirm_{{ id }}"
+                                      class="confirm-friend-request btn-link material-icons p-2"
+                                      onclick='triggerAcceptFriendRequest("{{ pending_friend_request_id }}")'>check_circle</span>
+                        </div>
+                    {% endif %}
+
+                    <div class="">
+                        <!-- Cancel Friend Request / Send Friend Request / Remove Friend -->
+                        {% if is_friend == False and is_self == False %}
+                            <!-- You sent them a request -->
+                            {% if request_sent == 1 %}
+                                <div class="d-flex flex-column align-items-center pt-4">
+                                    <button class="btn btn-danger" id="id_cancel_friend_request_btn">
+                                        Cancel Friend Request
+                                    </button>
+                                </div>
+                            {% endif %}
+                            <!-- No requests have been sent -->
+                            {% if request_sent == -1 %}
+                                <div class="d-flex flex-column align-items-center pt-4">
+                                    <button class="btn btn-primary" id="id_send_friend_request_btn">
+                                        Send Friend Request
+                                    </button>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                    </div>
+
+                    <div class=" m-2 px-4">
+                        {% if is_self %}
+                            <div class="d-flex flex-column p-4" id="public_chat_room_creation_id">
+                                <a class="cursor-pointer">
+                                    <div class="d-flex flex-row align-items-center justify-content-center icon-container">
+                                        <span class="material-icons mr-2 friends-icon">contact_page</span>
+                                        <span class="friend-text">Public chat</span>
+                                    </div>
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if friend_requests %}
+                        <div class=" m-2 px-4 pb-4">
+                            <!-- Friend requests -->
+                            <div class="d-flex flex-column pt-4">
+                                <a href="{% url 'friend_requests' pk=pk %}">
+                                    <div class="d-flex flex-row align-items-center justify-content-center icon-container">
+                                        <span class="material-icons mr-2 person-add-icon">person_add</span><span
+                                            class="friend-text">Friend Requests ({{ friend_requests|length }})</span>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+
+    <script type="text/javascript">
+
+        // called from base_js.html
+        preloadImage("{{image|safe}}", 'id_profile_image')
+
+        function onFriendRequestSent() {
+            location.reload();
+        }
+
+        function onFriendRequestCancelled() {
+            location.reload();
+        }
+
+        function onFriendRemoved() {
+            location.reload();
+        }
+
+        function onFriendRequestAccepted() {
+            location.reload();
+        }
+
+        function onFriendRequestDeclined() {
+            location.reload();
+        }
+
+
+        var sendFriendRequestBtn = document.getElementById("id_send_friend_request_btn")
+        if (sendFriendRequestBtn != null) {
+            sendFriendRequestBtn.addEventListener("click", function () {
+                sendFriendRequest("{{pk}}", onFriendRequestSent)
+            })
+        }
+
+        var cancelFriendRequestBtn = document.getElementById("id_cancel_friend_request_btn")
+        if (cancelFriendRequestBtn != null) {
+            cancelFriendRequestBtn.addEventListener("click", function () {
+                cancelFriendRequest("{{pk}}", onFriendRequestCancelled)
+            })
+        }
+
+        var removeFriendBtn = document.getElementById("id_unfriend_btn")
+        if (removeFriendBtn != null) {
+            removeFriendBtn.addEventListener("click", function () {
+                removeFriend("{{pk}}", onFriendRemoved)
+            })
+        }
+
+        function triggerAcceptFriendRequest(friend_request_id) {
+            acceptFriendRequest(friend_request_id, onFriendRequestAccepted)
+        }
+
+        function triggerDeclineFriendRequest(friend_request_id) {
+            declineFriendRequest(friend_request_id, onFriendRequestDeclined)
+        }
+
+        let publicChatRoomCreationID = document.getElementById('public_chat_room_creation_id')
+
+        function triggerCreatePublicChatRoom() {
+            publicChatRoomCreationID.addEventListener('click', e => {
+                let form = document.createElement('form')
+                let div1 = document.createElement('div')
+                let div2 = document.createElement('div')
+                div2.classList.add('col-md-12')
+                div2.id = 'inputs_section'
+                let submitButton = document.createElement('button')
+                submitButton.id = 'id_create_public_room_btn'
+                submitButton.type = 'submit'
+                submitButton.innerText = 'create'
+                submitButton.classList.add('pull-left', 'btn', 'btn-success', 'mt-4')
+                div2.classList.add('form-group')
+                div1.innerHTML = '{% csrf_token %}'
+                form.id = 'id_public_chat_room_form'
+                form.method = 'post'
+                form.appendChild(div1)
+                div2.innerHTML = '{{ public_form.title }}'
+                form.appendChild(div2)
+                form.appendChild(submitButton)
+
+                swal({
+                    content: form,
+                    title: `Create public room`,
+                    button: 'close',
+                    dangerMode: true,
+                    closeOnClickOutside: false,
+                    closeOnEsc: false,
+                    icon: 'info'
+                })
+                    .then(() => {
+                    });
+                swal.getState(publicChatRoomForm())
+            })
+        }
+
+        `{% if is_self %}
+    ${triggerCreatePublicChatRoom()}
+    {% endif %}`
+
+
+    </script>
+    {% include 'friend/snippets/send_friend_request.html' %}
+    {% include 'friend/snippets/accept_friend_request.html' %}
+    {% include 'friend/snippets/decline_friend_request.html' %}
+    {% include 'friend/snippets/cancel_friend_request.html' %}
+    {% include 'friend/snippets/remove_friend.html' %}
+    {% include 'chat/snippets/create_or_return_private_chat.html' %}
+    {% include 'public/snippets/public_chat_room_form.html' %}
+
+
+{% endblock %}

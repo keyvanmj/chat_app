@@ -1,0 +1,178 @@
+{% url 'public_chat' uid=msg_and_friend.0.rooms.0.uid as public_chat_url %}
+<div id="sidepanel">
+            <aside id="bottom-bar" class="position-absolute">
+                <!-- close settings sidebar -->
+                    <button class="toggle-wrap p-3 position-absolute bottom-0 start-0 w-100">
+                        <i class="fa fa-times fa-fw" aria-hidden="true"></i> <span>Settings</span>
+                    </button>
+                <!-- end close settings sidebar -->
+
+                {% if request.user.is_superuser %}
+                <a href="{% url 'admin:index' %}">
+                    <button class="w-100 mt-3 p-3">
+                            <i class="fa fa-mail-forward fa-fw" aria-hidden="true"></i> <span>admin panel</span>
+                    </button>
+                </a>
+                {% endif %}
+
+                <button onclick="searchModal()" class="w-100 mt-3 p-3">
+                    <i class="fa fa-user-plus fa-fw" aria-hidden="true"></i> <span>Add contact</span>
+                </button>
+
+                <a href="{% url 'account_view' pk=request.user.pk %}">
+                    <button class="w-100 mt-3 p-3">
+                            <i class="fa fa-user fa-fw" aria-hidden="true"></i> <span>Profile</span>
+                    </button>
+                </a>
+
+                <a href="{% url 'friends_list' pk=request.user.pk %}">
+                    <button class="w-100 mt-3 p-3" >
+                            <i class="fa fa-users fa-fw" aria-hidden="true"></i> <span>Friends</span>
+                    </button>
+                </a>
+
+                <a href="{% url 'public_room_list' %}">
+                    <button class="w-100 mt-3 p-3" >
+                            <i class="fa fa-users fa-fw" aria-hidden="true"></i> <span>Public rooms</span>
+                    </button>
+                </a>
+
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'logout_view' %}">
+                        <button class="w-100 mt-3 p-3">
+                                <i class="fa fa-sign-out fa-fw" aria-hidden="true"></i> <span>Logout</span>
+                        </button>
+                    </a>
+                {% endif %}
+
+
+            </aside>
+		<div id="profile">
+			<div class="wrap">
+				<img id="profile-img" src="{{ request.user.get_profile_image }}" class="online" alt="" style="width: 50px;height: 50px"/>
+				<p>{{ request.user.profile.full_name }}</p>
+
+				<i class="fa fa-chevron-down expand-button" aria-hidden="true"></i>
+				<div id="status-options">
+					<ul>
+						<li id="status-online" class="active"><span class="status-circle"></span> <p>Online</p></li>
+						<li id="status-away"><span class="status-circle"></span> <p>Away</p></li>
+						<li id="status-busy"><span class="status-circle"></span> <p>Busy</p></li>
+						<li id="status-offline"><span class="status-circle"></span> <p>Offline</p></li>
+					</ul>
+				</div>
+				<div id="expanded">
+                        {% if request.user.is_authenticated %}
+                            <i class="fa fa-user fa-fw" aria-hidden="true"></i>
+                            <a href="{% url 'account_view' pk=request.user.pk %}">Account</a>
+
+                        {% endif %}
+				</div>
+			</div>
+		</div>
+    {% if msg_and_friend %}
+                {% if request.path_info != public_chat_url %}
+		<div id="search">
+			<label for=""><i class="fa fa-search" aria-hidden="true"></i></label>
+			<input id="search_input" type="text" placeholder="Search contacts..." />
+		</div>
+            {% endif %}
+    {% endif %}
+		<div id="contacts">
+			<ul>
+                {% for x in msg_and_friend %}
+                    {% if x.rooms %}
+                        {% url 'public_chat' uid=x.message.room.uid as public_room_url %}
+                        <li class="contact {% if request.path_info == public_room_url %}active{% endif %}">
+                        <div class="d-flex flex-column friends-list-container">
+                            <div class="p-2 wrap friend-container meta bg-transparent" onclick="{% if request.path_info != public_room_url %}window.location.replace('{{x.message.room.uid}}'){% endif %}">
+                                <span class="contact-status online"></span>
+                                <img class="rounded-circle img-fluid" id="" src="">
+                                <div class="d-flex flex-column ">
+                                    <p class="username-p name">{{x.message.room}}</p>
+                                    <p class="friend-message-p preview" id="sidebar_msg_{{ x.message.room.pk }}">{{x.message|truncatechars:20}}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="contact" id="contact_id">
+                        <div class="d-flex flex-column friends-list-container">
+                            <div class="p-2 wrap friend-container meta bg-transparent" onclick="onSelectFriend('{{x.friend.id}}')" id="id_friend_container_{{x.friend.id}}">
+                                <span class="contact-status online"></span>
+
+                                <img src="" class="profile-image" id="id_friend_img_{{x.friend.id}}" alt="avatar" style="width: 50px;height: 50px;">
+                                <div class="d-flex flex-column ">
+                                    <p class="username-p name">{{x.friend.profile.full_name}}</p>
+                                    <p class="friend-message-p preview" id="sidebar_msg_{{ x.friend.id }}">{{x.message|truncatechars:20}}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+			</ul>
+		</div>
+		<div id="bottom-bar">
+              <div class="toggle-wrap">
+			    <button class="p-3" style="width: 100%;"><i class="fa fa-cog fa-fw" aria-hidden="true"></i> <span>Settings</span></button>
+              </div>
+		</div>
+	</div>
+<script>
+    function searchModal() {
+        swal({
+            text: 'Search for users',
+            content: "input",
+            button: {
+                text: "Search!",
+                closeModal: false,
+            },
+        })
+
+            .then(name => {
+                if (name){
+                    window.location.replace(`{%  url 'search' %}?q=${name}`)
+                }else{
+
+                }
+            })
+    }
+    (function() {
+      $('.toggle-wrap').on('click', function() {
+        $(this).toggleClass('active');
+        $('aside').animate({width: 'toggle'}, 200);
+      });
+    })();
+    document.querySelector('aside[id="bottom-bar"]').querySelectorAll('a').forEach(a=>{
+        if (a.href === '{{ request.build_absolute_uri }}'){
+            a.firstElementChild.classList.add('bg-info')
+        }
+    })
+
+    function searchJS(){
+        let searchInput = document.getElementById('search_input')
+        let items = document.querySelectorAll('.username-p')
+        let contactId = document.getElementById('contact_id')
+        searchInput.addEventListener('keyup',e=>{
+            let searchValue = searchInput.value
+            searchValue = searchValue.toLowerCase()
+
+            items.forEach(item=>{
+                if (!item.innerHTML.toLowerCase().includes(searchValue)){
+                    item.closest('#contact_id').classList.add('d-none')
+                }else{
+                    item.closest('#contact_id').classList.add('list-item')
+                    item.closest('#contact_id').classList.remove('d-none')
+                }
+            })
+        })
+    }
+    {% if msg_and_friend %}
+    {% if request.path_info != public_chat_url %}
+    searchJS()
+        {% endif %}
+    {% endif %}
+
+
+</script>

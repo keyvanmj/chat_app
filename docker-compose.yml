@@ -1,0 +1,66 @@
+version: "3.9"
+services:
+  daphne:
+    build: .
+    image: "chat_app-chat_app:latest"
+    working_dir: /app/Chat_App
+    command: sh -c "daphne -b 0.0.0.0 -p 8001 Chat_App.asgi:application && python manage.py collectstatic --no-input"
+    env_file:
+      - '.env'
+
+    depends_on:
+      - redis
+      - db
+    links:
+      - redis
+      - db
+    volumes:
+      - ../Chat_App:/app/Chat_App
+
+  gunicorn:
+    image: "chat_app-chat_app:latest"
+    build: .
+    working_dir: /app/Chat_App
+    command: sh -c "gunicorn -b 0.0.0.0:8000 Chat_App.wsgi:application"
+    env_file:
+      - '.env'
+    depends_on:
+      - redis
+      - db
+    links:
+      - redis
+      - db
+    volumes:
+      - ../Chat_App:/app/Chat_App
+
+  nginx:
+    build: "nginx"
+    working_dir: /app/Chat_App
+    volumes:
+      - ./static_content/static_root/:/static/
+      - ./static_content/media_root/:/media/
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    command: sh -c "envsubst < /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'" && sh -c "python manage.py collectstatic"
+    depends_on:
+      - daphne
+  redis:
+    image: redis:latest
+    command: ["redis-server", "--port", "6379"]
+    ports:
+      - "6379:6379"
+
+  db:
+    image: postgres:latest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - "POSTGRES_HOST_AUTH_METHOD=trust"
+
+volumes:
+  static:
+  media:
+  daphne:
+  gunicorn:
+  postgres_data:

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons"
+          rel="stylesheet">
+    {% include 'shared/css_reference.html' %}
+
+</head>
+<body class="cp-pen-styles">
+    {% include 'shared/base_css.html' %}
+    {% include 'shared/header.html' %}
+    {% include 'shared/base_js.html' %}
+
+    <div class="spinner-overlay" id="id_loading_spinner"></div>
+    <div id="spinner_id" class="spinner">
+      <div class="loader"></div>
+      <p>Loading ...</p>
+    </div>
+{% block content %}
+
+{% endblock %}
+    {% include 'shared/js_reference.html' %}
+</body>
+</html>

@@ -1,0 +1,41 @@
+<script type="text/javascript">
+    function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+    }
+    const joinPublicChatRoom = (userId,roomId) => {
+        csrftoken = getCookie('csrftoken')
+          let payload = {
+              'id':roomId,
+              'users':userId
+          }
+
+          $.ajax({
+              type:'PUT',
+              url:'{% url "public_room_list" %}',
+              data:payload,
+              headers:{"X-CSRFToken": csrftoken },
+              success:function (data) {
+                  console.log('SUCCESS',data)
+                  redirectURL(data['redirect_url'])
+              },error:function (data) {
+                console.error('ERROR...', data)
+				alert('Something went wrong.')
+              }
+          })
+
+        let redirectURL = (url)=>{
+              window.location.replace(url)
+        }
+    }
+</script>

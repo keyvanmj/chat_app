@@ -1,0 +1,245 @@
+{% load static %}
+
+<style type="text/css">
+	.chat-dropdown-header:hover{
+		cursor: pointer;
+		background: var(--main-background-color);
+	}
+	.chat-dropdown-header{
+		color: var(--light-primary-text-color);
+	}
+	.scrollable-menu {
+		height: auto;
+		max-height: 90vh;
+		width: 500px;
+		overflow-x: hidden;
+	}
+
+	.notifications-material-icon {
+		font-size: 28px;
+
+	}
+	.notifications-icon-container{
+		width: 40px;
+		height: 40px;
+		background-color: var(--main-background-color);
+	}
+	.notifications-icon-container:hover {
+		cursor: pointer;
+		background-color: var(--secondary-text-color)
+	}
+	.notify-badge{
+		position: absolute;
+		background: transparent;
+		height:1.2rem;
+		width:1.2rem;
+		line-height: 1.2rem;
+		top:1rem;
+		right:2rem;
+		text-align: center;
+		font-size: 1rem;
+		border-radius: 50%;
+		color:white;
+		font-weight: 630;
+		margin-top:-15px;
+		margin-right: -25px;
+	}
+	#id_notifications_spinner{
+		margin-top: 20px;
+		margin-bottom: 20px;
+	}
+</style>
+
+<!-- Header -->
+<a class="material-icons text-decoration-none align-middle text-light position-absolute top-0 p-1 start-0" data-bs-toggle="collapse" href="#collapse_navbar" role="button" aria-expanded="false" aria-controls="multiCollapseExample1">menu</a>
+
+<div class="position-absolute top-0 navbar-container collapse w-100" style="z-index: 9999;" id="collapse_navbar">
+
+	<!-- MEDIUM+ SCREENS -->
+	<div id="navbar" class="d-none px-md-4 navbar navbar-light bg-light d-md-flex flex-row my-auto flex-grow-1 align-items-center">
+    <div class="mr-3 font-weight-normal">
+        <a class="material-icons text-danger text-decoration-none" data-bs-toggle="collapse" href="#collapse_navbar" aria-expanded="false" aria-controls="collapse_navbar">close</a>
+    </div>
+		<div class="d-flex flex-row-reverse flex-grow-1">
+			<nav class="">
+				{% if request.user.is_authenticated %}
+					<div class="dropdown p-2">
+						<div class="d-flex flex-row text-dark">
+                            <h5 class="font-weight-normal justify-content-start">
+                                <a class="text-dark" href="{% url 'home' %}">
+                                    <span class="material-icons m-2 align-items-center" data-bs-toggle="tooltip" data-bs-placement="left" title="Home">home</span>
+                                </a>
+                            </h5>
+
+                            <div class="btn-group dropstart">
+								<div class="d-flex notifications-icon-container  rounded-circle align-items-center mr-3">
+                                    <a class="text-decoration-none text-dark" id="id_public_notification_dropdown_toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+									<span id="id_public_notifications_count" class="notify-badge"></span>
+									<span class="d-flex material-icons notifications-material-icon m-auto align-items-center" data-bs-toggle="tooltip" data-bs-placement="left" title="Public Chat notifications">question_answer</span>
+                                    </a>
+									<div class="dropdown-menu  p-0  scrollable-menu" aria-labelledby="id_public_notification_dropdown_toggle" id="id_public_notifications_container">
+									</div>
+								</div>
+							</div>
+
+							<div class="btn-group dropstart">
+								<div class="d-flex notifications-icon-container  rounded-circle align-items-center mr-3">
+                                    <a class="text-decoration-none text-dark" id="id_chat_notification_dropdown_toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+									<span id="id_chat_notifications_count" class="notify-badge"></span>
+									<span class="d-flex material-icons notifications-material-icon m-auto align-items-center" data-bs-toggle="tooltip" data-bs-placement="left" title="Chat notifications">chat</span>
+                                    </a>
+									<div class="dropdown-menu p-0 scrollable-menu" aria-labelledby="id_chat_notification_dropdown_toggle" id="id_chat_notifications_container">
+									</div>
+								</div>
+							</div>
+
+							<div class="btn-group dropstart">
+
+								<div class="d-flex notifications-icon-container  rounded-circle align-items-center mr-3">
+                                    <a class="text-dark text-decoration-none" id="id_notification_dropdown_toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="setGeneralNotificationsAsRead()">
+									<span id="id_general_notifications_count" class="notify-badge"></span>
+									<span class="d-flex material-icons notifications-material-icon m-auto align-items-center" data-bs-toggle="tooltip" data-bs-placement="left" title="General notifications">notifications</span>
+                                    </a>
+									<div class="dropdown-menu scrollable-menu" aria-labelledby="id_notification_dropdown_toggle" id="id_general_notifications_container">
+									</div>
+								</div>
+							</div>
+
+							<div class="btn-group dropstart">
+								<img class="account-image cursor-pointer rounded-circle m-auto d-block dropdown-toggle" id="id_profile_links" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" src="{{request.user.get_profile_image}}" alt="logo" width="40" height="40">
+								<div class="dropdown-menu" aria-labelledby="id_profile_links">
+									<a class="dropdown-item" href="{% url 'account_view' pk=request.user.id %}">Account</a>
+									<a class="dropdown-item" href="{% url 'logout_view' %}">Logout</a>
+								</div>
+							</div>
+						</div>
+
+					</div>
+				{% else %}
+					<a class="p-2 text-dark" href="{% url 'login_view' %}">Login</a>
+					<a class="btn btn-outline-primary" href="{% url 'register_view' %}">Register</a>
+				{% endif %}
+			</nav>
+		</div>
+	</div>
+	<!-- END MEDIUM+ SCREENS -->
+
+	<!-- SMALL SCREENS -->
+	<div id="navbar" class="d-flex px-md-4 navbar navbar-light bg-light d-md-none flex-column my-auto align-items-center">
+		<h5 class="font-weight-normal">
+		    <a class="text-dark" href="{% url 'home' %}">
+                    <span class="material-icons text-decoration-underline mb-3 align-items-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Home">home</span>
+            </a>
+		</h5>
+		<div class="d-flex flex-row-reverse flex-grow-1">
+			<nav class="">
+				{% if request.user.is_authenticated %}
+				<div class="dropdown p-2 mt-2">
+					<div class="d-flex flex-row">
+						<div class="btn-group dropstart">
+							<img class="account-image rounded-circle m-auto d-block dropdown-toggle" id="id_profile_links" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" src="{{request.user.get_profile_image}}" alt="logo" width="40" height="40">
+							<div class="dropdown-menu" aria-labelledby="id_profile_links">
+								<a class="dropdown-item" href="{% url 'account_view' pk=request.user.id %}">Account</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				{% else %}
+					<a class="p-2 text-dark" href="{% url 'login_view' %}">Login</a>
+					<a class="btn btn-outline-primary m-2" href="{% url 'register_view' %}">Register</a>
+				{% endif %}
+			</nav>
+	  	</div>
+	</div>
+	<!-- END SMALL SCREENS -->
+</div>
+
+
+{% include 'shared/notifications/chat_notifications.html' %}
+{% include 'shared/notifications/general_notifications.html' %}
+
+<!-- Setup SOCKET for NOTIFICATIONS -->
+<script type="text/javascript">
+	ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+	ws_path = ws_scheme + '://' + window.location.host + "/";
+	let notificationSocket = new WebSocket(ws_path);
+
+	// Handle incoming messages
+	notificationSocket.onmessage = function(message) {
+		let data = JSON.parse(message.data);
+		if(data.general_msg_type == 0){
+			handleGeneralNotificationsData(data['notifications'], data['new_page_number'])
+		}
+		if(data.general_msg_type == 1){
+			setGeneralPaginationExhausted()
+		}
+		if(data.general_msg_type == 2){
+			refreshGeneralNotificationsData(data['notifications'])
+		}
+		if(data.general_msg_type == 3){
+			handleNewGeneralNotificationsData(data['notifications'])
+		}
+		if(data.general_msg_type == 4){
+			setUnreadGeneralNotificationsCount(data['count'])
+		}
+		if(data.general_msg_type == 5){
+			updateGeneralNotificationDiv(data['notification'])
+		}
+        // private room
+		if(data.chat_msg_type == 10){
+			handleChatNotificationsData(data['notifications'], data['new_page_number'],'chat')
+		}
+		if(data.chat_msg_type == 11){
+			setChatPaginationExhausted('chat')
+		}
+		if(data.chat_msg_type == 13){
+			handleNewChatNotificationsData(data['notifications'],'chat')
+		}
+		if(data.chat_msg_type == 14){
+			setChatNotificationsCount(data['count'],'chat')
+		}
+        // public room
+        if(data.public_msg_type == 16){
+			handleChatNotificationsData(data['notifications'], data['new_page_number'],'public')
+		}
+		if(data.public_msg_type == 17){
+			setChatPaginationExhausted('public')
+		}
+		if(data.public_msg_type == 18){
+			handleNewChatNotificationsData(data['notifications'],'public')
+		}
+		if(data.public_msg_type == 19){
+			setChatNotificationsCount(data['count'],'public')
+		}
+
+	}
+
+	notificationSocket.onclose = function(e) {
+		console.error('Notification Socket closed unexpectedly');
+        setTimeout(()=>{
+            window.location.reload()
+        },2500)
+	};
+
+	notificationSocket.onopen = function(e){
+        setupGeneralNotificationsMenu()
+		getFirstGeneralNotificationsPage()
+		getUnreadGeneralNotificationsCount()
+		setupChatNotificationsMenu('chat')
+        setupChatNotificationsMenu('public')
+		getFirstChatNotificationsPage('chat')
+		getFirstChatNotificationsPage('public')
+	}
+
+	notificationSocket.onerror = function(e){
+		{#console.log('Notification Socket error', e)#}
+	}
+
+	if (notificationSocket.readyState == WebSocket.OPEN) {
+		{#console.log("Notification Socket OPEN complete.")#}
+	} 
+	else if (notificationSocket.readyState == WebSocket.CONNECTING){
+		{#console.log("Notification Socket connecting..")#}
+	}
+
+</script>

@@ -1,0 +1,47 @@
+<!-- Modal -->
+<div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark" id="staticBackdropLabel">
+                    {% if users %}
+                        Add contact
+                    {% else %}
+                        User status log
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="modal-body text-dark" id="status_log">
+                {% if users %}
+                    {% for user in users %}
+                        <div class="card mb-3" style="max-width: 540px;">
+                          <div class="row g-0">
+                            <div class="col-md-4">
+                                <a href="{% url 'account_view' pk=user.pk %}" data-bs-toggle="tooltip"
+                                   data-bs-placement="top" title="user account">
+                                    <img src="{{ user.profile.get_profile_image }}" class="img-fluid rounded-start" alt="{{ user.profile.full_name }}'s profile image">
+                                </a>
+                            </div>
+                            <div class="col-md-8 bg-dark text-info">
+                              <div class="card-body">
+                                  <h5 class="card-title"></h5>
+                                <p class="card-text h5">{{ user.profile.full_name }}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-block btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                {% else %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                {% endif %}
+
+    </div>
+</div>

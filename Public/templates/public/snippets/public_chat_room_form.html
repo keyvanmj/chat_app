@@ -1,0 +1,50 @@
+<script type="text/javascript">
+
+    const publicChatRoomForm = () => {
+        let feedbackDiv = document.createElement('div')
+        let public_form_id = document.getElementById('id_public_chat_room_form')
+        let inputSection = document.getElementById('inputs_section')
+        public_form_id.addEventListener('submit', (e) => {
+                e.preventDefault()
+                $.ajax({
+                    method: 'POST',
+                    dataType: 'json',
+                    url: '{% url "create_or_return_public_chat" %}',
+                    data: $(public_form_id).serialize(),
+                    success: function (data) {
+
+                        if (data['error']) {
+                            feedbackDiv.classList.add('invalid-feedback')
+                            feedbackDiv.id = 'validation_feedback'
+                            inputSection.appendChild(feedbackDiv)
+                            for (const [key, value] of Object.entries(data['error'])) {
+                                feedbackDiv.textContent = value
+                                document.querySelector(`input[name=${key}]`).classList.add('is-invalid')
+                                document.querySelector(`input[name=${key}]`).ariaDescribedby = 'validation_feedback'
+                            }
+                        }
+                        else if (data['response'] === 'The room was successfully created.') {
+                            feedbackDiv.className.replace('invalid-feedback', 'valid-feedback')
+                            feedbackDiv.id = 'validation_feedback'
+                            inputSection.appendChild(feedbackDiv)
+                            feedbackDiv.textContent = data['response']
+                            document.querySelector(`input[name='title']`).className.replace('is-invalid', 'is-valid')
+                            document.querySelector(`input[name='title']`).ariaDescribedby = 'validation_feedback'
+                            let redirectURL = data['redirect_url']
+                            OnGetOrCreateChatroomSuccess(redirectURL)
+                        }
+                    },
+                    error: function (data) {
+                        console.log(data)
+                        alert('Something went wrong.')
+                    }
+                })
+            }
+        )
+        let OnGetOrCreateChatroomSuccess = (redirectURL) => {
+            window.location.replace(redirectURL)
+        }
+    }
+
+
+</script>
